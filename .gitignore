@@ -1,0 +1,15 @@
+# Chặn thư mục node_modules ở TẤT CẢ mọi nơi (cả frontend lẫn backend)
+**/node_modules/
+node_modules/
+
+# Chặn file môi trường chứa mật khẩu
+**/.env
+.env
+
+# Chặn thư mục build (kết quả sau khi chạy code)
+**/dist/
+dist/
+
+# File rác của Mac/Windows
+.DS_Store
+Thumbs.db
