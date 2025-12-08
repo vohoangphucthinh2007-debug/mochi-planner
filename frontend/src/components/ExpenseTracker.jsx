@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Plus, TrendingUp, TrendingDown, Edit3, X, Calendar as CalIcon,
-  Droplets, ArrowRight, Wallet, History, AlertCircle, Trash2
+  Droplets, ArrowRight, Wallet, History, AlertCircle, Trash2, CheckCircle2, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
@@ -10,7 +10,7 @@ import { vi } from 'date-fns/locale';
 import { JARS_INFO, ALLOCATION_MODELS } from "@/lib/jarsData"; 
 import mochiLogo from "@/assets/mochi-logo.jpg"; 
 
-// --- COMPONENT: HŨ NƯỚC MOCHI (Giữ nguyên logic, chỉnh CSS responsive) ---
+// --- COMPONENT: HŨ NƯỚC MOCHI ---
 const MochiJar = ({ jarKey, balance, totalIncome, onClick, isSelected }) => {
     const info = JARS_INFO[jarKey];
     const fillPercent = totalIncome > 0 ? Math.min((balance / (totalIncome * 0.4)) * 100, 100) : 0;
@@ -19,7 +19,6 @@ const MochiJar = ({ jarKey, balance, totalIncome, onClick, isSelected }) => {
     return (
         <div 
             onClick={onClick}
-            // Mobile: Scale nhỏ hơn chút / PC: Hover hiệu ứng
             className={`relative flex flex-col items-center cursor-pointer transition-all duration-300 flex-shrink-0 ${isSelected ? 'scale-105 -translate-y-2' : 'hover:scale-105'}`}
         >
             <div className="relative w-20 h-28 md:w-24 md:h-32 bg-white/40 backdrop-blur-sm border-2 border-white/80 rounded-b-3xl rounded-t-lg overflow-hidden shadow-lg group">
@@ -71,8 +70,19 @@ const ExpenseTracker = () => {
     
     const [allocationPreview, setAllocationPreview] = useState([]);
 
-    // --- LOGIC GIỮ NGUYÊN ---
+    // --- STATE CHO MODAL CẢNH BÁO MỚI ---
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: "",
+        message: "",
+        type: "danger", // 'danger' (xóa) hoặc 'info' (sửa)
+        onConfirm: null // Hàm sẽ chạy khi bấm "Đồng ý"
+    });
+
+    // --- 1. LOGIC ---
     useEffect(() => { fetchTransactions(); }, []);
+    
+    // Logic tạo preview phân bổ (giữ nguyên)
     useEffect(() => {
         if (transactionType === 'income' && formMode === 'add') {
             const model = ALLOCATION_MODELS.find(m => m.id === selectedModel);
@@ -169,13 +179,21 @@ const ExpenseTracker = () => {
         } catch (error) { console.error(error); toast.error("Có lỗi xảy ra"); }
     };
 
-    const handleDelete = async (id) => {
-        if(confirm("Bạn chắc chắn muốn xóa?")) {
-            await api.delete(`/expenses/${id}`);
-            fetchTransactions();
-            toast.success("Đã xóa");
-        }
-    }
+    // --- HÀM XỬ LÝ XÓA MỚI (DÙNG MODAL) ---
+    const handleDeleteClick = (id) => {
+        setConfirmModal({
+            isOpen: true,
+            title: "Xóa giao dịch?",
+            message: "Bạn có chắc chắn muốn xóa khoản này không? Hành động này không thể hoàn tác.",
+            type: "danger",
+            onConfirm: async () => {
+                await api.delete(`/expenses/${id}`);
+                fetchTransactions();
+                toast.success("Đã xóa thành công");
+                setConfirmModal(prev => ({ ...prev, isOpen: false })); // Đóng modal
+            }
+        });
+    };
 
     const startEdit = (t) => {
         setFormMode('edit'); setEditId(t._id); setTransactionType(t.type);
@@ -190,13 +208,12 @@ const ExpenseTracker = () => {
 
     const formatMoney = (n) => n?.toLocaleString('vi-VN', {style:'currency', currency:'VND'});
 
-    // --- RENDER (ĐÃ CHỈNH RESPONSIVE) ---
+    // --- RENDER ---
     return (
-        <div className="space-y-6 pb-24 md:pb-20"> {/* Tăng padding bottom cho mobile */}
+        <div className="space-y-6 pb-24 md:pb-20 relative">
             
-            {/* 1. DASHBOARD - Mobile: 1 cột / PC: 2 cột */}
+            {/* DASHBOARD */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Card Số Dư */}
                 <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-5 md:p-6 text-white shadow-xl relative overflow-hidden">
                     <div className="relative z-10">
                          <h3 className="text-indigo-200 text-xs md:text-sm font-medium uppercase tracking-wider mb-1">
@@ -213,7 +230,6 @@ const ExpenseTracker = () => {
                     <Wallet className="absolute -bottom-6 -right-6 w-24 h-24 md:w-32 md:h-32 text-white opacity-10" />
                 </div>
                 
-                {/* Bộ lọc thời gian */}
                 <div className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-gray-100 flex flex-col justify-center">
                     <h3 className="text-gray-500 text-xs md:text-sm font-bold mb-3 uppercase">Thời gian báo cáo</h3>
                     <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
@@ -230,13 +246,12 @@ const ExpenseTracker = () => {
                 </div>
             </div>
 
-            {/* 2. HŨ MOCHI - Đã có scroll ngang (Tốt cho mobile) */}
+            {/* HŨ MOCHI */}
             <div>
                 <h3 className="text-gray-800 font-bold text-base md:text-lg mb-3 flex items-center gap-2">
                     <Droplets className="text-blue-500" size={20}/>
                     Hũ Quỹ Mochi
                 </h3>
-                {/* Thêm padding-right để dễ scroll trên điện thoại */}
                 <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar snap-x scroll-smooth">
                     {Object.keys(JARS_INFO).map(jarKey => (
                         <MochiJar 
@@ -251,14 +266,12 @@ const ExpenseTracker = () => {
                             }}
                         />
                     ))}
-                    {/* Spacer ảo để scroll hết hũ cuối cùng trên mobile */}
                     <div className="w-2 flex-shrink-0"></div>
                 </div>
             </div>
 
-            {/* 3. FORM NHẬP LIỆU - Mobile: 1 cột / PC: 2 cột */}
+            {/* FORM NHẬP LIỆU */}
             <div className="bg-white p-4 md:p-6 rounded-3xl shadow-lg border border-indigo-50 relative overflow-hidden">
-                {/* Header chuyển đổi Thu/Chi */}
                 <div className="flex justify-center mb-6">
                     <div className="bg-gray-100 p-1 rounded-xl flex w-full md:w-auto">
                         <button 
@@ -277,7 +290,6 @@ const ExpenseTracker = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-                    {/* Mobile: Grid 1 cột (xếp chồng) / PC: Grid 2 cột */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-gray-500 uppercase ml-1">Ngày</label>
@@ -409,7 +421,7 @@ const ExpenseTracker = () => {
                                     <div className={`flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white ${t.type === 'income' ? 'bg-green-500' : jar.bgColor}`}>
                                         {t.type === 'income' ? <TrendingUp size={16}/> : <TrendingDown size={16}/>}
                                     </div>
-                                    <div className="min-w-0"> {/* min-w-0 giúp text truncate hoạt động */}
+                                    <div className="min-w-0"> 
                                         <div className="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">{t.text}</div>
                                         <div className="flex items-center gap-2 text-[10px] md:text-xs text-gray-400">
                                             <span>{format(new Date(t.date), 'dd/MM')}</span>
@@ -422,12 +434,11 @@ const ExpenseTracker = () => {
                                     <div className={`font-bold text-xs md:text-sm ${t.type === 'income' ? 'text-green-600' : 'text-gray-800'}`}>
                                         {t.type === 'income' ? '+' : '-'}{formatMoney(t.amount)}
                                     </div>
-                                    {/* Mobile: Luôn hiện nút xóa/sửa hoặc phải bấm vào mới hiện (để đơn giản ta luôn hiện nhưng mờ) */}
                                     <div className="flex gap-2 justify-end mt-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => startEdit(t)} className="p-1 bg-indigo-50 text-indigo-500 rounded-md">
                                             <Edit3 size={12}/>
                                         </button>
-                                        <button onClick={() => handleDelete(t._id)} className="p-1 bg-red-50 text-red-500 rounded-md">
+                                        <button onClick={() => handleDeleteClick(t._id)} className="p-1 bg-red-50 text-red-500 rounded-md">
                                             <X size={12}/>
                                         </button>
                                     </div>
@@ -437,6 +448,37 @@ const ExpenseTracker = () => {
                     })}
                 </div>
             </div>
+
+            {/* --- CUSTOM CONFIRM MODAL (HỘP THOẠI ĐẸP) --- */}
+            {confirmModal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <div className={`p-3 rounded-full mb-4 ${confirmModal.type === 'danger' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {confirmModal.type === 'danger' ? <AlertTriangle size={32} /> : <AlertCircle size={32} />}
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmModal.title}</h3>
+                            <p className="text-sm text-gray-500 mb-6">{confirmModal.message}</p>
+                            
+                            <div className="flex gap-3 w-full">
+                                <button 
+                                    onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                                    className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                                >
+                                    Không
+                                </button>
+                                <button 
+                                    onClick={confirmModal.onConfirm}
+                                    className={`flex-1 px-4 py-2 text-sm font-bold text-white rounded-xl shadow-md transition-colors ${confirmModal.type === 'danger' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+                                >
+                                    Có, đồng ý
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 };
