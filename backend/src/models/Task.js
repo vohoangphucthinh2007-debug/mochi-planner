@@ -1,15 +1,15 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const TaskSchema = new mongoose.Schema(
   {
-    // --- PHẦN QUAN TRỌNG MỚI THÊM ---
+    // --- User ID ---
     userId: {
       type: String,
-      required: true, // Bắt buộc phải có ID người dùng
-      index: true,    // Giúp tìm kiếm nhanh hơn
+      required: true,
+      index: true, 
     },
-    // --------------------------------
-    
+    // ---------------
+
     title: {
       type: String,
       required: true,
@@ -32,4 +32,4 @@ const TaskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Task", TaskSchema);
+export default mongoose.model("Task", TaskSchema);

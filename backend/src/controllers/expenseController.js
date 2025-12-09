@@ -1,13 +1,11 @@
-import Transaction from "../models/Transaction.js";
+import Transaction from "../models/Transaction.js"; // Nhớ đuôi .js
 
 // @desc    Lấy tất cả giao dịch (Của riêng User)
 // @route   GET /api/expenses
 export const getTransactions = async (req, res) => {
   try {
-    // 1. Lấy userId từ frontend gửi lên
     const { userId } = req.query;
 
-    // 2. Kiểm tra bảo mật
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -15,7 +13,7 @@ export const getTransactions = async (req, res) => {
       });
     }
 
-    // 3. Chỉ tìm giao dịch CỦA USER ĐÓ
+    // Chỉ lấy giao dịch khớp với userId
     const transactions = await Transaction.find({ userId: userId }).sort({
       date: -1,
       createdAt: -1,
@@ -38,10 +36,8 @@ export const getTransactions = async (req, res) => {
 // @route   POST /api/expenses
 export const addTransaction = async (req, res) => {
   try {
-    // Lấy userId từ body frontend
     const { text, amount, type, date, userId } = req.body;
 
-    // Kiểm tra userId
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -49,7 +45,6 @@ export const addTransaction = async (req, res) => {
       });
     }
 
-    // Tạo giao dịch có gắn tên chủ sở hữu
     const transaction = await Transaction.create(req.body);
 
     return res.status(201).json({
@@ -72,20 +67,19 @@ export const addTransaction = async (req, res) => {
   }
 };
 
-// @desc    Thêm nhiều giao dịch cùng lúc
+// @desc    Thêm nhiều giao dịch (Batch)
 // @route   POST /api/expenses/batch
 export const addBatchTransactions = async (req, res) => {
   try {
-    const transactions = req.body; // Mảng các giao dịch
+    const transactions = req.body; 
     
     if (!Array.isArray(transactions) || transactions.length === 0) {
         return res.status(400).json({ success: false, error: "Dữ liệu không hợp lệ" });
     }
 
-    // Kiểm tra xem trong mảng có userId chưa, nếu chưa có thì báo lỗi (để an toàn)
     const isValid = transactions.every(t => t.userId);
     if (!isValid) {
-        return res.status(400).json({ success: false, error: "Thiếu userId trong gói dữ liệu batch" });
+        return res.status(400).json({ success: false, error: "Thiếu userId trong dữ liệu gửi lên" });
     }
     
     const createdTransactions = await Transaction.insertMany(transactions);

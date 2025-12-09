@@ -1,44 +1,40 @@
 import mongoose from "mongoose";
 
 const TransactionSchema = new mongoose.Schema({
-  // --- THÊM PHẦN USER ID (QUAN TRỌNG) ---
+  // --- USER ID (Bắt buộc) ---
   userId: {
     type: String,
     required: [true, "Cần có thông tin người dùng (userId)"],
     trim: true,
-    index: true // Giúp tìm kiếm nhanh hơn
+    index: true 
   },
-  // --------------------------------------
+  // --------------------------
 
   text: {
     type: String,
-    required: [true, "Vui lòng nhập nội dung"],
     trim: true,
+    required: [true, "Vui lòng nhập nội dung giao dịch"],
   },
   amount: {
     type: Number,
     required: [true, "Vui lòng nhập số tiền"],
   },
-  
-  // --- CÁC TRƯỜNG CŨ CỦA BẠN (GIỮ NGUYÊN) ---
   type: {
-    type: String,
-    enum: ["income", "expense"], // Chỉ nhận 'income' (thu) hoặc 'expense' (chi)
-    required: true,
+    type: String, 
+    required: [true, "Cần xác định là thu hay chi"], 
+    enum: ["income", "expense"],
     default: "expense"
   },
   date: {
     type: Date,
-    required: true,
-    default: Date.now, // Cho phép chọn ngày
+    default: Date.now,
   },
   jar: {
     type: String,
-    required: true, // Bắt buộc phải thuộc về 1 hũ nào đó
     default: "necessity", 
   },
   category: {
-    type: String, // Chỉ dùng cho Expense (Ăn uống, mua sắm...)
+    type: String, 
     default: "others",
   },
   createdAt: {

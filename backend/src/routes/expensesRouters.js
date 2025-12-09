@@ -1,11 +1,11 @@
 import express from "express";
-import {
-  getTransactions,
-  addTransaction,
-  deleteTransaction,
-  addBatchTransactions, // Import hàm mới
-  updateTransaction     // Import hàm mới
-} from "../controllers/expenseController.js";
+import { 
+    getTransactions, 
+    addTransaction, 
+    addBatchTransactions,
+    deleteTransaction,
+    updateTransaction
+} from "../controllers/expenseController.js"; // Đảm bảo đúng tên file controller
 
 const router = express.Router();
 
@@ -13,12 +13,11 @@ router.route("/")
     .get(getTransactions)
     .post(addTransaction);
 
-// Route đặc biệt để thêm nhiều cái
 router.route("/batch")
     .post(addBatchTransactions);
 
 router.route("/:id")
     .delete(deleteTransaction)
-    .put(updateTransaction); // Method PUT để sửa
+    .put(updateTransaction); // Hoặc patch
 
 export default router;
