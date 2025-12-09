@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Menu, X, ListTodo, Wallet, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom"; 
-import { signOut, onAuthStateChanged } from "firebase/auth"; // Thêm onAuthStateChanged
+import { signOut, onAuthStateChanged } from "firebase/auth"; 
 import { auth } from "../firebase"; 
 
 // Import các component
@@ -57,7 +57,7 @@ const HomePage = () => {
 
     // Dọn dẹp khi thoát trang
     return () => unsubscribe();
-  }, [navigate]);
+    }, [navigate]);
 
   // 2. Logic Đăng xuất
   const handleLogout = async () => {
@@ -235,7 +235,8 @@ const HomePage = () => {
                 />
               </div>
 
-              <div className="flex flex-col items-center justify-between gap-6 sm:flex-row mt-6">
+              {/* --- ĐÃ SỬA: Chuyển flex-col thành flex-row để nằm ngang trên mobile --- */}
+              <div className="flex flex-row items-center justify-between gap-2 mt-6 w-full">
                 <TaskListPagination
                   handleNext={handleNext}
                   handlePrev={handlePrev}
@@ -248,6 +249,7 @@ const HomePage = () => {
                   setDateQuery={setDateQuery}
                 />
               </div>
+
               <div className="mt-6">
                 <Footer
                     activeTasksCount={activeTaskCount}
