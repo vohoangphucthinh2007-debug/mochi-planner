@@ -1,6 +1,15 @@
 import mongoose from "mongoose";
 
 const TransactionSchema = new mongoose.Schema({
+  // --- THÊM PHẦN USER ID (QUAN TRỌNG) ---
+  userId: {
+    type: String,
+    required: [true, "Cần có thông tin người dùng (userId)"],
+    trim: true,
+    index: true // Giúp tìm kiếm nhanh hơn
+  },
+  // --------------------------------------
+
   text: {
     type: String,
     required: [true, "Vui lòng nhập nội dung"],
@@ -10,7 +19,8 @@ const TransactionSchema = new mongoose.Schema({
     type: Number,
     required: [true, "Vui lòng nhập số tiền"],
   },
-  // --- CÁC TRƯỜNG MỚI ---
+  
+  // --- CÁC TRƯỜNG CŨ CỦA BẠN (GIỮ NGUYÊN) ---
   type: {
     type: String,
     enum: ["income", "expense"], // Chỉ nhận 'income' (thu) hoặc 'expense' (chi)
