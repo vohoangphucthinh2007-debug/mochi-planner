@@ -1,60 +1,66 @@
 import React, { useState } from "react";
-import { Card } from "./ui/card";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 
-const AddTask = ({ handleNewTaskAdded }) => {
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const addTask = async () => {
-    if (newTaskTitle.trim()) {
-      try {
-        await api.post("/tasks", { title: newTaskTitle });
-        toast.success(`Nhiệm vụ ${newTaskTitle} đã được thêm vào.`);
-        handleNewTaskAdded();
-      } catch (error) {
-        console.error("Lỗi xảy ra khi thêm task.", error);
-        toast.error("Lỗi xảy ra khi thêm nhiệm vụ mới.");
-      }
+// Nhận props currentUserId từ HomePage truyền vào
+const AddTask = ({ handleNewTaskAdded, currentUserId }) => {
+  const [title, setTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-      setNewTaskTitle("");
-    } else {
-      toast.error("Bạn cần nhập nội dung của nhiệm vụ.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!title.trim()) {
+      toast.error("Vui lòng nhập nội dung công việc!");
+      return;
     }
-  };
 
-  const handleKeyPress = (event) => {
-    if (event.key === "Enter") {
-      addTask();
+    // Nếu chưa đăng nhập (không có ID) thì báo lỗi
+    if (!currentUserId) {
+        toast.error("Bạn cần đăng nhập lại để thực hiện!");
+        return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Gửi request kèm userId trong body
+      await api.post("/tasks", {
+        title: title,
+        userId: currentUserId // <-- QUAN TRỌNG NHẤT
+      });
+
+      toast.success("Đã thêm nhiệm vụ mới");
+      setTitle("");
+      handleNewTaskAdded(); // Gọi hàm refresh ở HomePage
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi thêm nhiệm vụ");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="p-6 border-0 bg-gradient-card shadow-custom-lg">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <Input
+    <div className="w-full">
+      <form onSubmit={handleSubmit} className="relative group">
+        <input
           type="text"
-          placeholder="Cần phải làm gì?"
-          className="h-12 text-base bg-slate-50 sm:flex-1 border-border/50 focus:border-primary/50 focus:ring-primary/20"
-          value={newTaskTitle}
-          onChange={(even) => setNewTaskTitle(even.target.value)}
-          onKeyPress={handleKeyPress}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Hôm nay bạn cần làm gì?"
+          disabled={isLoading}
+          className="w-full p-4 pr-14 rounded-2xl border-none bg-white/80 backdrop-blur-sm shadow-sm focus:ring-2 focus:ring-pink-300 focus:outline-none placeholder-gray-400 text-gray-700 transition-all"
         />
-
-        <Button
-          variant="gradient"
-          size="xl"
-          className="px-6"
-          onClick={addTask}
-          disabled={!newTaskTitle.trim()}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="absolute right-2 top-2 bottom-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white p-2.5 rounded-xl shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
         >
-          <Plus className="size-5" />
-          Thêm
-        </Button>
-      </div>
-    </Card>
+          <Plus size={24} strokeWidth={2.5} />
+        </button>
+      </form>
+    </div>
   );
 };
 

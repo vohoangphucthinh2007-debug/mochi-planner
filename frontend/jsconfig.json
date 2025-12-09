@@ -4,7 +4,15 @@
     "paths": {
       "@/*": ["*"]
     },
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    
+    // --- Các dòng thêm vào để sửa lỗi ---
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "checkJs": false
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

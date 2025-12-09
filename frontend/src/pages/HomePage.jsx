@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Menu, X, ListTodo, Wallet } from "lucide-react";
+import { Menu, X, ListTodo, Wallet, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom"; 
+import { signOut, onAuthStateChanged } from "firebase/auth"; // Thêm onAuthStateChanged
+import { auth } from "../firebase"; 
 
 // Import các component
 import AddTask from "@/components/AddTask";
@@ -16,8 +19,7 @@ import { visibleTaskLimit } from "@/lib/data";
 // Import component Chi Tiêu
 import ExpenseTracker from "@/components/ExpenseTracker";
 
-// --- IMPORT LOGO MỚI ---
-// Đảm bảo bạn đã lưu ảnh vào đường dẫn này
+// Import Logo
 import mochiLogo from "@/assets/mochi-logo.jpg"; 
 
 const HomePage = () => {
@@ -29,14 +31,52 @@ const HomePage = () => {
   const [dateQuery, setDateQuery] = useState("today");
   const [page, setPage] = useState(1);
   
+  // State quản lý User hiện tại
+  const [currentUser, setCurrentUser] = useState(null);
+
   // State cho Menu và Chuyển màn hình
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentView, setCurrentView] = useState("tasks"); 
 
-  // --- EFFECT ---
+  const navigate = useNavigate();
+
+  // --- LOGIC AUTH & FETCH DATA ---
+  
+  // 1. Lắng nghe trạng thái đăng nhập ngay khi vào trang
   useEffect(() => {
-    if (currentView === "tasks") {
-      fetchTasks();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+        // Có user rồi mới đi lấy dữ liệu của user đó
+        fetchTasks(user.uid); 
+      } else {
+        // Nếu không có user (chưa đăng nhập) -> Đá về trang login
+        navigate("/login");
+      }
+    });
+
+    // Dọn dẹp khi thoát trang
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // 2. Logic Đăng xuất
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem("isLoggedIn");
+      navigate("/login");
+      toast.success("Đã đăng xuất thành công");
+    } catch (error) {
+      console.error("Lỗi đăng xuất:", error);
+      toast.error("Đăng xuất thất bại");
+    }
+  };
+
+  // --- EFFECT KHÁC ---
+  // Khi đổi ngày hoặc đổi màn hình -> Gọi lại API (nhưng cần có currentUser)
+  useEffect(() => {
+    if (currentView === "tasks" && currentUser) {
+      fetchTasks(currentUser.uid);
     }
   }, [dateQuery, currentView]);
 
@@ -44,21 +84,30 @@ const HomePage = () => {
     setPage(1);
   }, [filter, dateQuery]);
 
-  // --- API LOGIC ---
-  const fetchTasks = async () => {
+  // --- API LOGIC (QUAN TRỌNG: GỬI KÈM UID) ---
+  const fetchTasks = async (uidToUse) => {
+    // Ưu tiên dùng uid truyền vào, nếu không có thì lấy từ state
+    const uid = uidToUse || currentUser?.uid;
+    
+    if (!uid) return; // Không có uid thì không gọi API để tránh lỗi
+
     try {
-      const res = await api.get(`/tasks?filter=${dateQuery}`);
+      // Gửi thêm tham số userId lên server
+      const res = await api.get(`/tasks?filter=${dateQuery}&userId=${uid}`);
       setTaskBuffer(res.data.tasks);
       setActiveTaskCount(res.data.activeCount);
       setCompleteTaskCount(res.data.completeCount);
     } catch (error) {
       console.error("Lỗi xảy ra khi truy xuất tasks:", error);
-      toast.error("Lỗi xảy ra khi truy xuất tasks.");
+      // toast.error("Lỗi kết nối server.");
     }
   };
 
   const handleTaskChanged = () => {
-    fetchTasks();
+    // Khi thêm/sửa/xóa xong, tải lại dữ liệu
+    if (currentUser) {
+      fetchTasks(currentUser.uid);
+    }
   };
 
   // --- PAGINATION LOGIC ---
@@ -99,17 +148,12 @@ const HomePage = () => {
         }}
       />
 
-      {/* 2. LOGO MOCHI CHÌM GIỮA TRANG (MỚI THÊM) */}
+      {/* 2. LOGO MOCHI CHÌM */}
       <div className="absolute inset-0 z-[1] flex items-center justify-center pointer-events-none overflow-hidden">
         <img 
             src={mochiLogo} 
             alt="Mochi Logo Watermark" 
             className="w-[500px] h-[500px] object-contain opacity-15 mix-blend-multiply grayscale-[0.2]"
-            // Giải thích các class:
-            // w-[500px]: Kích thước lớn
-            // opacity-15: Độ mờ 15% (rất nhạt để không rối mắt)
-            // pointer-events-none: Để chuột bấm xuyên qua được (không bị chặn click)
-            // mix-blend-multiply: Giúp ảnh hòa trộn vào nền tốt hơn (loại bỏ bớt màu trắng của ảnh)
         />
       </div>
 
@@ -160,7 +204,7 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* 5. NỘI DUNG CHÍNH (Z-INDEX CAO HƠN LOGO) */}
+      {/* 5. NỘI DUNG CHÍNH */}
       <div className="container relative z-10 pt-8 mx-auto">
         <div className="w-full max-w-2xl p-6 mx-auto space-y-6">
           
@@ -168,7 +212,11 @@ const HomePage = () => {
 
           {currentView === "tasks" ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <AddTask handleNewTaskAdded={handleTaskChanged} />
+              {/* Truyền currentUser.uid vào AddTask để khi tạo mới thì gắn thẻ user luôn */}
+              <AddTask 
+                handleNewTaskAdded={handleTaskChanged} 
+                currentUserId={currentUser?.uid} 
+              />
               
               <div className="mt-6">
                 <StatsAndFilters
@@ -209,11 +257,22 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="animate-in fade-in zoom-in duration-300">
-                <ExpenseTracker />
+                {/* Truyền currentUser.uid vào ExpenseTracker */}
+                <ExpenseTracker currentUserId={currentUser?.uid} />
             </div>
           )}
         </div>
       </div>
+
+      {/* 6. NÚT ĐĂNG XUẤT */}
+      <button 
+        onClick={handleLogout}
+        className="fixed bottom-6 left-6 flex items-center gap-2 bg-white/80 backdrop-blur-md text-red-500 border border-red-200 hover:bg-red-50 hover:border-red-300 font-bold py-3 px-6 rounded-full shadow-lg transition-all active:scale-95 z-50 group"
+      >
+        <LogOut size={20} className="group-hover:-translate-x-1 transition-transform"/>
+        <span className="hidden sm:inline">Đăng xuất</span>
+      </button>
+
     </div>
   );
 };

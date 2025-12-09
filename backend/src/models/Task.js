@@ -1,26 +1,35 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
-const taskSchema = new mongoose.Schema(
+const TaskSchema = new mongoose.Schema(
   {
+    // --- PHẦN QUAN TRỌNG MỚI THÊM ---
+    userId: {
+      type: String,
+      required: true, // Bắt buộc phải có ID người dùng
+      index: true,    // Giúp tìm kiếm nhanh hơn
+    },
+    // --------------------------------
+    
     title: {
       type: String,
       required: true,
-      trim: true,
     },
     status: {
       type: String,
       enum: ["active", "complete"],
       default: "active",
     },
-    completedAt: {
+    date: {
       type: Date,
-      default: null,
+      default: Date.now,
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium",
     },
   },
-  {
-    timestamps: true, 
-  }
+  { timestamps: true }
 );
 
-const Task = mongoose.model("Task", taskSchema);
-export default Task;
+module.exports = mongoose.model("Task", TaskSchema);
